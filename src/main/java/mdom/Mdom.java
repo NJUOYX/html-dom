@@ -1,10 +1,8 @@
 package mdom;
 
 import mdom.attributes.*;
-import mdom.nodes.Element;
+import mdom.nodes.*;
 import mdom.nodes.NodeFactory;
-import mdom.nodes.NodeVisitor;
-import mdom.nodes.Node_m;
 import mdom.tags.TagFactory;
 import mdom.tags.Tag_m;
 import org.htmlparser.*;
@@ -12,6 +10,9 @@ import org.htmlparser.Tag;
 import org.htmlparser.util.NodeIterator;
 import org.htmlparser.util.ParserException;
 
+import javax.net.ssl.HttpsURLConnection;
+import java.io.FileWriter;
+import java.net.URLConnection;
 import java.util.*;
 
 public class Mdom {
@@ -22,12 +23,12 @@ public class Mdom {
     private Mdom(String htmlStr) {
         try {
             parser = new Parser(htmlStr);
-            parser.setEncoding("");
             build();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
     public static Mdom fromString(String htmlStr) {
         return new Mdom(htmlStr);
@@ -38,7 +39,11 @@ public class Mdom {
     }
 
     public static Mdom fromWeb(String url) {
-        return new Mdom(HtmlGetter.webGetter(url));
+        return new Mdom(url);
+    }
+
+    public Node_m getDocument(){
+        return document;
     }
 
     public Element getElementById(String id) {
@@ -49,7 +54,9 @@ public class Mdom {
                 AttributeVisitor attributeVisitor = new AttributeVisitor() {
                     @Override
                     public void visit(Attribute_id attribute_id) {
-                        res.add(element);
+                        if(attribute_id.getAttribute_value().contentEquals(id)) {
+                            res.add(element);
+                        }
                     }
                 };
                 element.visitAllAttributes(attributeVisitor);
@@ -122,7 +129,8 @@ public class Mdom {
                 recurseBuild(childM, child);
             }else if(child instanceof Text){
                 Text text = (Text)child;
-                if(!text.getText().isBlank()) {
+                String strText = text.getText();
+                if(!strText.isEmpty()) {
                     NodeFactory.addChild(parentM, nodeMaker(text));
                 }
             }
@@ -146,11 +154,11 @@ public class Mdom {
     }
 
     private Node_m nodeMaker(Tag tag){
-        Tag_m tagM = TagFactory.tagMaker(tag.getRawTagName());
+        Tag_m tagM = TagFactory.tagMaker(tag.getTagName());
         Vector<Attribute> attributes = tag.getAttributesEx();
         List<Attribute_m> attributesM = new LinkedList<>();
         attributes.forEach(attribute -> {
-            if(attribute.getName()!=null) {
+            if(attribute.getName()!=null && !attribute.getName().equalsIgnoreCase(tag.getTagName())) {
                 attributesM.add(AttributeFactory.attributeMaker(attribute.getName(), attribute.getValue()));
             }
         });
@@ -169,6 +177,27 @@ public class Mdom {
     private void visitNode(Node_m nodeM, NodeVisitor nodeVisitor){
         nodeM.accept(nodeVisitor);
         nodeM.getChildren().forEach(child->visitNode(child, nodeVisitor));
+    }
+
+    public static void main(String[]strings){
+        Mdom mdom = Mdom.fromWeb("https://www.baidu.com");
+        Element target = mdom.getElementById("s-top-left");
+        String[]strs = {"news", "HAO123","map","tieba","video","image","cloud","more"};
+        Queue<String> replaces = new LinkedList<>();
+        replaces.addAll(List.of(strs));
+        target.visitAllChildren(new NodeVisitor() {
+            @Override
+            public void visit(TextNode textNode) {
+                textNode.setText(replaces.poll());
+            }
+        });
+        try {
+            FileWriter fileWriter = new FileWriter("output.html");
+            fileWriter.write(mdom.printHtml());
+            fileWriter.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
 }

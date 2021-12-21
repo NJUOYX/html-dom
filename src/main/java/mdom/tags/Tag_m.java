@@ -3,7 +3,7 @@ package mdom.tags;
 public class Tag_m {
     private final String tag;
     public Tag_m(String tag){
-        this.tag = tag;
+        this.tag = tag.toLowerCase();
     }
 
     public String getBeginTag(String attribute){

@@ -5,7 +5,11 @@ public class TextNode extends Node_m{
 
     public TextNode(String text) {
         super();
-        this.text = text;
+        if(text == null){
+            this.text = "";
+        }else {
+            this.text = text;
+        }
     }
 
     @Override
@@ -16,5 +20,13 @@ public class TextNode extends Node_m{
     @Override
     public String toString(){
         return text.toString();
+    }
+
+    public void setText(String text){
+        if(text == null){
+            this.text = "";
+        }else {
+            this.text = text;
+        }
     }
 }
